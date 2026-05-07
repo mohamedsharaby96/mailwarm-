@@ -9,6 +9,7 @@ MailWarm v4 — Production Engine
 """
 
 import imaplib, smtplib, ssl, json, logging, random, threading, time, re, os, uuid
+import urllib.request
 import hashlib
 from datetime import datetime, timedelta
 from email.mime.text import MIMEText
@@ -478,45 +479,106 @@ def find_folder(imap_conn, candidates):
         pass
     return None
 
-def send_email_real(acc, to_email, subject, body, reply_to_msgid=None):
-    """
-    Send email with per-account device headers and optional reply-to chain.
-    Returns (True, message_id) or (False, error_string)
-    """
+def send_via_sendgrid(from_email, to_email, subject, body, reply_to_msgid=None):
+    """Send email via SendGrid HTTP API — works on Railway (no port blocks)."""
+    api_key = os.environ.get('SENDGRID_API_KEY', '')
+    if not api_key:
+        return False, 'SENDGRID_API_KEY not set in Railway environment variables'
+
+    msg_id = f"<{uuid.uuid4().hex}.{int(time.time())}@{from_email.split('@')[1]}>"
+
+    payload = {
+        "personalizations": [{"to": [{"email": to_email}]}],
+        "from": {"email": from_email},
+        "subject": subject,
+        "content": [{"type": "text/plain", "value": body}],
+        "headers": {"Message-ID": msg_id}
+    }
+    if reply_to_msgid:
+        payload["headers"]["In-Reply-To"] = reply_to_msgid
+        payload["headers"]["References"]  = reply_to_msgid
+
+    data = json.dumps(payload).encode('utf-8')
+    req  = urllib.request.Request(
+        'https://api.sendgrid.com/v3/mail/send',
+        data=data,
+        headers={
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type':  'application/json',
+        },
+        method='POST'
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            if resp.status in (200, 202):
+                return True, msg_id
+            return False, f'SendGrid returned {resp.status}'
+    except urllib.error.HTTPError as e:
+        body_err = e.read().decode('utf-8', errors='replace')[:200]
+        return False, f'SendGrid HTTP {e.code}: {body_err}'
+    except Exception as e:
+        return False, str(e)
+
+def send_via_smtp(acc, to_email, subject, body, reply_to_msgid=None):
+    """Fallback: direct SMTP (works locally, blocked on Railway)."""
     try:
         profile = get_device_profile(acc['email'])
-        smtp = smtp_connect(acc)
+        ctx = ssl.create_default_context()
 
-        msg = MIMEMultipart('alternative')
-        msg['From']    = acc['email']
-        msg['To']      = to_email
-        msg['Subject'] = subject
-        msg['Date']    = formatdate(localtime=True)
+        # Try 465 first then 587
+        smtp = None
+        for attempt in [
+            lambda: smtplib.SMTP_SSL(acc.get('smtp_host','smtp.gmail.com'), 465, context=ctx, timeout=30),
+            lambda: smtplib.SMTP(acc.get('smtp_host','smtp.gmail.com'), 587, timeout=30),
+        ]:
+            try:
+                smtp = attempt()
+                break
+            except Exception:
+                continue
+        if not smtp:
+            return False, 'SMTP connection failed on both 465 and 587'
 
-        # Unique Message-ID per account domain style
+        if not isinstance(smtp, smtplib.SMTP_SSL):
+            smtp.ehlo(); smtp.starttls(context=ctx)
+        smtp.ehlo()
+        smtp.login(acc['email'], acc.get('password',''))
+
         domain = acc['email'].split('@')[1]
         msg_id = f"<{uuid.uuid4().hex}.{int(time.time())}@{domain}>"
+        msg = MIMEMultipart('alternative')
+        msg['From']       = acc['email']
+        msg['To']         = to_email
+        msg['Subject']    = subject
+        msg['Date']       = formatdate(localtime=True)
         msg['Message-ID'] = msg_id
-
-        # Thread headers
+        msg['X-Mailer']   = profile['x_mailer']
         if reply_to_msgid:
             msg['In-Reply-To'] = reply_to_msgid
             msg['References']  = reply_to_msgid
-
-        # Device simulation headers
-        msg['X-Mailer']         = profile['x_mailer']
-        msg['X-Mail-Client']    = profile['agent']
-
         msg.attach(MIMEText(body, 'plain', 'utf-8'))
         smtp.sendmail(acc['email'], to_email, msg.as_string())
         smtp.quit()
         return True, msg_id
     except KeyError:
-        return False, 'password missing — re-add account'
+        return False, 'password missing'
     except smtplib.SMTPAuthenticationError:
         return False, 'Authentication failed — check app password'
     except Exception as e:
         return False, str(e)
+
+def send_email_real(acc, to_email, subject, body, reply_to_msgid=None):
+    """
+    Smart send: tries SendGrid first (Railway-compatible),
+    falls back to direct SMTP (for local use).
+    """
+    sg_key = os.environ.get('SENDGRID_API_KEY', '')
+    if sg_key:
+        # On Railway — use SendGrid API
+        return send_via_sendgrid(acc['email'], to_email, subject, body, reply_to_msgid)
+    else:
+        # Local — use direct SMTP
+        return send_via_smtp(acc, to_email, subject, body, reply_to_msgid)
 
 # ── Jitter enforcement ─────────────────────────────────────────────────────
 def wait_for_jitter(email, jitter_min=120, jitter_max=300):
@@ -1246,19 +1308,37 @@ def test_connection():
     except Exception as e:
         results['imap'] = {"ok":False,"msg":str(e)[:80]}
         results['inbox'] = results['sent'] = results['spam'] = {"ok":False,"msg":"Skipped"}
-    try:
-        smtp = smtp_connect(acc)
-        smtp.quit()
-        results['smtp'] = {"ok":True,"msg":"SMTP connected (port 465 SSL)"}
-        add_log('OK', f"[{email}] SMTP test passed")
-    except KeyError:
-        results['smtp'] = {"ok":False,"msg":"Password missing"}
-    except smtplib.SMTPAuthenticationError:
-        results['smtp'] = {"ok":False,"msg":"Auth failed — check app password"}
-        add_log('ERR', f"[{email}] SMTP auth failed")
-    except Exception as e:
-        results['smtp'] = {"ok":False,"msg":f"Both 465 and 587 failed: {str(e)[:60]}"}
-        add_log('ERR', f"[{email}] SMTP failed: {e}")
+    sg_key = os.environ.get('SENDGRID_API_KEY', '')
+    if sg_key:
+        # Test SendGrid by checking API key validity
+        try:
+            req = urllib.request.Request(
+                'https://api.sendgrid.com/v3/scopes',
+                headers={'Authorization': f'Bearer {sg_key}'},
+                method='GET'
+            )
+            with urllib.request.urlopen(req, timeout=10) as r:
+                if r.status == 200:
+                    results['smtp'] = {"ok": True, "msg": "SendGrid API connected ✓"}
+                    add_log('OK', f"[{email}] SendGrid API test passed")
+                else:
+                    results['smtp'] = {"ok": False, "msg": f"SendGrid returned {r.status}"}
+        except urllib.error.HTTPError as e:
+            results['smtp'] = {"ok": False, "msg": f"SendGrid API key invalid ({e.code})"}
+            add_log('ERR', f"[{email}] SendGrid auth failed")
+        except Exception as e:
+            results['smtp'] = {"ok": False, "msg": str(e)[:80]}
+    else:
+        try:
+            smtp = smtp_connect(acc)
+            smtp.quit()
+            results['smtp'] = {"ok": True, "msg": "SMTP connected"}
+            add_log('OK', f"[{email}] SMTP test passed")
+        except smtplib.SMTPAuthenticationError:
+            results['smtp'] = {"ok": False, "msg": "Auth failed — check app password"}
+            add_log('ERR', f"[{email}] SMTP auth failed")
+        except Exception as e:
+            results['smtp'] = {"ok": False, "msg": str(e)[:80]}
     return jsonify(results)
 
 @app.route('/api/scenarios', methods=['GET'])
