@@ -20,12 +20,23 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
 app = Flask(__name__, static_folder='static')
-CORS(app, origins=[
-    "http://localhost:5000",
-    "http://127.0.0.1:5000",
-    "https://web-production-7870e.up.railway.app",
-    "*"  # allow all origins — safe since this is a personal tool
-])
+CORS(app,
+    resources={r"/api/*": {"origins": "*"}},
+    allow_headers=["Content-Type", "Authorization", "Accept"],
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    supports_credentials=False
+)
+
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+    return response
+
+@app.route('/api/<path:path>', methods=['OPTIONS'])
+def handle_options(path):
+    return '', 204
 logging.basicConfig(level=logging.INFO, format='%(asctime)s | %(levelname)s | %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -1276,7 +1287,7 @@ def add_account():
         return jsonify({"ok":False,"error":"Email and password required"}), 400
     with state_lock:
         if any(a['email'] == email for a in state['accounts']):
-            return jsonify({"ok":False,"error":"Account already exists"}), 400
+            return jsonify({"ok":False,"error":"Account already exists"})
     acc = {
         "email": email, "password": password,
         "imap_host": data.get('imap_host','imap.gmail.com'),
