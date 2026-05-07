@@ -391,12 +391,34 @@ def imap_connect(acc):
     return c
 
 def smtp_connect(acc):
-    """Connect to SMTP with optional SOCKS5/HTTP proxy per account."""
+    """
+    Connect to SMTP with automatic port fallback:
+    - Port 465: SMTP_SSL (direct SSL) — works on Railway/cloud
+    - Port 587: STARTTLS — works locally
+    - Auto-tries 465 first if 587 fails (Railway blocks 587)
+    """
     host = acc.get('smtp_host', 'smtp.gmail.com')
     port = int(acc.get('smtp_port', 587))
     pwd  = acc.get('password', '')
     if not pwd:
         raise KeyError('password')
+
+    ctx = ssl.create_default_context()
+
+    # Try port 465 (SMTP_SSL) first on cloud, fallback to 587 locally
+    def try_465():
+        c = smtplib.SMTP_SSL(host, 465, context=ctx, timeout=30)
+        c.ehlo()
+        c.login(acc['email'], pwd)
+        return c
+
+    def try_587():
+        c = smtplib.SMTP(host, 587, timeout=30)
+        c.ehlo()
+        c.starttls(context=ctx)
+        c.ehlo()
+        c.login(acc['email'], pwd)
+        return c
 
     proxy_url  = acc.get('proxy')
     proxy_info = _parse_proxy(proxy_url)
@@ -404,24 +426,29 @@ def smtp_connect(acc):
     if proxy_info:
         raw_sock = _make_proxy_socket(proxy_info, host, port)
         if raw_sock:
-            # Use SMTP over existing socket
             c = smtplib.SMTP(timeout=30)
             c.sock = raw_sock
             c.file = c.sock.makefile('rb')
-            # Read greeting manually
             c._get_socket = lambda *a, **k: raw_sock
+            c.ehlo()
+            c.starttls(context=ctx)
+            c.ehlo()
+            c.login(acc['email'], pwd)
             add_log('INFO', f"[{acc['email']}] SMTP via proxy {proxy_info['host']}:{proxy_info['port']}")
+            return c
         else:
             add_log('WARN', f"[{acc['email']}] Proxy failed, using direct SMTP")
-            c = smtplib.SMTP(host, port, timeout=30)
-    else:
-        c = smtplib.SMTP(host, port, timeout=30)
 
-    c.ehlo()
-    c.starttls(context=ssl.create_default_context())
-    c.ehlo()
-    c.login(acc['email'], pwd)
-    return c
+    # Try 465 first (cloud-friendly), then 587 (local)
+    last_err = None
+    for attempt in [try_465, try_587]:
+        try:
+            return attempt()
+        except Exception as e:
+            last_err = e
+            continue
+
+    raise last_err
 
 def find_folder(imap_conn, candidates):
     for folder in candidates:
@@ -1222,7 +1249,7 @@ def test_connection():
     try:
         smtp = smtp_connect(acc)
         smtp.quit()
-        results['smtp'] = {"ok":True,"msg":"SMTP connected"}
+        results['smtp'] = {"ok":True,"msg":"SMTP connected (port 465 SSL)"}
         add_log('OK', f"[{email}] SMTP test passed")
     except KeyError:
         results['smtp'] = {"ok":False,"msg":"Password missing"}
@@ -1230,7 +1257,8 @@ def test_connection():
         results['smtp'] = {"ok":False,"msg":"Auth failed — check app password"}
         add_log('ERR', f"[{email}] SMTP auth failed")
     except Exception as e:
-        results['smtp'] = {"ok":False,"msg":str(e)[:80]}
+        results['smtp'] = {"ok":False,"msg":f"Both 465 and 587 failed: {str(e)[:60]}"}
+        add_log('ERR', f"[{email}] SMTP failed: {e}")
     return jsonify(results)
 
 @app.route('/api/scenarios', methods=['GET'])
