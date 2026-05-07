@@ -551,11 +551,23 @@ let logFilter = 'ALL', countdownTimer = null, cycleStart = null, cycleInterval =
 // ── API ────────────────────────────────────────────────────────────────────
 async function api(path, method='GET', body=null) {
   try {
-    const opts = {method, headers:{'Content-Type':'application/json'}};
+    const opts = {
+      method,
+      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      mode: 'cors',
+    };
     if (body) opts.body = JSON.stringify(body);
-    const r = await fetch(API+path, opts);
+    const r = await fetch(API + path, opts);
+    if (!r.ok) {
+      const txt = await r.text();
+      console.error('API error', r.status, txt);
+      try { return JSON.parse(txt); } catch { return {ok: false, error: `Server error ${r.status}: ${txt.slice(0,100)}`}; }
+    }
     return await r.json();
-  } catch(e) { return null; }
+  } catch(e) {
+    console.error('API fetch failed:', e);
+    return null;
+  }
 }
 
 // ── Poll ───────────────────────────────────────────────────────────────────
@@ -1127,6 +1139,15 @@ let toastTimer;
 function showToast(msg,type='g'){document.getElementById('tmsg').textContent=msg;document.getElementById('tdot').className='tdot '+type;document.getElementById('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>document.getElementById('toast').classList.remove('show'),3500);}
 
 // ── Boot ───────────────────────────────────────────────────────────────────
+function updateProxyHint(val) {
+  const el = document.getElementById('proxy-hint');
+  if (!el) return;
+  if (!val) { el.style.color='var(--text3)'; return; }
+  const valid = /^(socks5|socks4|https?):\/\/.+:\d+/.test(val);
+  el.style.color = valid ? 'var(--green)' : 'var(--red)';
+  el.textContent = valid ? '✓ Valid proxy' : '✗ Use: socks5://user:pass@host:port';
+}
+
 poll();
 </script>
 </body>
