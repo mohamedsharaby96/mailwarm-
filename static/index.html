@@ -1050,15 +1050,40 @@ async function testConn() {
 
 async function doAddAcc() {
   if(!connOK){showToast('Run connection test first','a');return;}
-  const email=document.getElementById('n-email').value.trim();
-  const pass=document.getElementById('n-pass').value.trim();
-  const provMap={gmail:'Gmail',outlook:'Outlook',yahoo:'Yahoo',zoho:'Zoho',custom:'Custom'};
-  const r=await api('/accounts','POST',{email,password:pass,provider:provMap[document.getElementById('n-prov').value],imap_host:document.getElementById('n-imap').value,smtp_host:document.getElementById('n-smtp').value,proxy:document.getElementById('n-proxy').value||null,imap_port:993,smtp_port:587});
-  if(r?.ok){closeModal('addAcc');document.getElementById('n-email').value='';document.getElementById('n-pass').value='';resetTest();showToast(email+' added ✓','g');}
-  else showToast(r?.error||'Failed','r');
+  const email = document.getElementById('n-email').value.trim();
+  const pass  = document.getElementById('n-pass').value.trim();
+  if (!email || !pass) { showToast('Email and password required','a'); return; }
+  const provMap = {gmail:'Gmail',outlook:'Outlook',yahoo:'Yahoo',zoho:'Zoho',custom:'Custom'};
+  const btn = document.getElementById('add-btn');
+  btn.disabled = true;
+  btn.textContent = 'Adding...';
+  try {
+    const r = await api('/accounts','POST',{
+      email, password: pass,
+      provider: provMap[document.getElementById('n-prov').value] || 'Gmail',
+      imap_host: document.getElementById('n-imap').value || 'imap.gmail.com',
+      smtp_host: document.getElementById('n-smtp').value || 'smtp.gmail.com',
+      proxy: document.getElementById('n-proxy').value || null,
+      imap_port: 993, smtp_port: 587
+    });
+    if (r && r.ok) {
+      closeModal('addAcc');
+      document.getElementById('n-email').value = '';
+      document.getElementById('n-pass').value  = '';
+      resetTest();
+      showToast(email + ' added ✓', 'g');
+    } else {
+      showToast(r?.error || 'Server returned error — check Logs', 'r');
+    }
+  } catch(e) {
+    showToast('Network error: ' + e.message, 'r');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Add Account';
+  }
 }
 
-async function removeAcc(email) { const r = await api('/accounts/remove','POST',{email}); if(r?.ok) showToast(email+' removed','a'); else showToast('Remove failed — try again','r'); }
+async function removeAcc(email) { const r = await api('/accounts/'+encodeURIComponent(email),'DELETE'); if(r?.ok) showToast(email+' removed','a'); else showToast('Remove failed','r'); }
 async function testAllConns() { showToast('Testing connections — check logs','b'); }
 async function deleteThread(id) { await api('/threads/'+id,'DELETE'); }
 
