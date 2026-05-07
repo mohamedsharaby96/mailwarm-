@@ -1,0 +1,6 @@
+flask
+flask-cors
+openai
+PySocks
+gunicorn
+psycopg2-binary

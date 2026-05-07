@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MailWarm v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0b0e;--bg2:#111318;--bg3:#181c24;--bg4:#1e2330;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);--text:#f0f2f5;--text2:#8b92a5;--text3:#4a5168;--accent:#4f7fff;--accent2:#7c5cff;--green:#22c55e;--green-bg:rgba(34,197,94,0.1);--green-border:rgba(34,197,94,0.2);--red:#ef4444;--red-bg:rgba(239,68,68,0.1);--amber:#f59e0b;--amber-bg:rgba(245,158,11,0.1);--purple:#a855f7;--purple-bg:rgba(168,85,247,0.1);--blue-bg:rgba(79,127,255,0.1);--blue-border:rgba(79,127,255,0.25);--r:10px;--rs:6px}
+*{box-sizing:border-box;margin:0;padding:0}html,body{height:100%;overflow:hidden}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:14px;display:flex}
+/* ── Sidebar ── */
+.sb{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;padding:20px 0}
+.logo{padding:0 18px 20px;border-bottom:1px solid var(--border);margin-bottom:16px}
+.logo-wrap{display:flex;align-items:center;gap:9px}
+.logo-ico{width:30px;height:30px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center}
+.logo-ico svg{width:16px;height:16px;fill:white}
+.logo-t{font-size:15px;font-weight:600;letter-spacing:-.3px}
+.logo-s{font-size:10px;color:var(--text3);margin-top:1px}
+.nav-sec{padding:0 10px;margin-bottom:4px}
+.nav-lbl{font-size:10px;font-weight:500;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;padding:0 8px;margin-bottom:6px;margin-top:12px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--rs);cursor:pointer;color:var(--text2);font-size:13px;border:none;background:none;width:100%;text-align:left;transition:all .15s;position:relative}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:var(--blue-bg);color:var(--accent)}
+.nav-item.active::before{content:'';position:absolute;left:-10px;top:50%;transform:translateY(-50%);width:3px;height:18px;background:var(--accent);border-radius:0 3px 3px 0}
+.nav-item svg{width:15px;height:15px;flex-shrink:0;opacity:.7}
+.nav-item.active svg{opacity:1}
+.nbadge{margin-left:auto;font-size:10px;font-weight:600;background:var(--accent);color:white;padding:1px 6px;border-radius:10px;min-width:18px;text-align:center}
+.nbadge.g{background:var(--green)}.nbadge.a{background:var(--amber)}.nbadge.r{background:var(--red)}
+.sb-foot{margin-top:auto;padding:14px 18px 0;border-top:1px solid var(--border)}
+.user-pill{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--rs);cursor:pointer}
+.user-pill:hover{background:var(--bg3)}
+.ava{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#4f7fff,#7c5cff);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:white;flex-shrink:0}
+/* ── Main ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:52px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:12px;flex-shrink:0}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+.sdot.a{background:var(--amber);animation:none}.sdot.r{background:var(--red);animation:none}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.4)}50%{box-shadow:0 0 0 5px rgba(34,197,94,0)}}
+.btn{padding:7px 14px;border-radius:var(--rs);font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text);transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:var(--bg4)}.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:white}.btn.pri:hover{background:#3d6fe8}
+.btn.suc{background:var(--green-bg);border-color:var(--green-border);color:var(--green)}
+.btn.dan{background:var(--red-bg);border-color:rgba(239,68,68,.3);color:var(--red)}
+.btn.amb{background:var(--amber-bg);border-color:rgba(245,158,11,.3);color:var(--amber)}
+.btn svg{width:13px;height:13px}
+/* ── Pages ── */
+.page{flex:1;overflow-y:auto;padding:24px;display:none}
+.page.active{display:block}
+/* ── Cards / Panels ── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:18px}
+.card-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-title{font-size:13px;font-weight:500}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.met{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px}
+.met-lbl{font-size:11px;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.met-val{font-size:28px;font-weight:600;letter-spacing:-1px}
+.met-sub{font-size:11px;margin-top:4px;color:var(--text3)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.g3{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px}
+/* ── Activity ── */
+.act-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:12px}
+.act-item:last-child{border-bottom:none;padding-bottom:0}
+.act-ico{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px}
+.act-ico.send{background:var(--blue-bg);color:var(--accent)}
+.act-ico.reply{background:var(--green-bg);color:var(--green)}
+.act-ico.star{background:var(--amber-bg);color:var(--amber)}
+.act-ico.unspam{background:var(--purple-bg);color:var(--purple)}
+.act-body{flex:1;line-height:1.5}
+.act-body strong{color:var(--text);font-weight:500}
+.act-time{color:var(--text3);font-size:10px;flex-shrink:0;margin-top:2px}
+/* ── Health bars ── */
+.hbar-wrap{flex:1;height:4px;background:var(--bg3);border-radius:2px}
+.hbar{height:100%;border-radius:2px;transition:width 1s}
+/* ── Accounts table ── */
+.tbl{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.tbl-hd{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 110px;background:var(--bg3);border-bottom:1px solid var(--border)}
+.tbl-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 110px;border-bottom:1px solid var(--border);transition:background .1s}
+.tbl-row:last-child{border-bottom:none}
+.tbl-row:hover{background:var(--bg3)}
+.th{padding:10px 14px;font-size:11px;font-weight:500;color:var(--text3);letter-spacing:.04em;text-transform:uppercase}
+.td{padding:10px 14px;font-size:12px;display:flex;align-items:center;gap:8px}
+.td.mono{font-family:'JetBrains Mono',monospace;font-size:11px}
+.spill{font-size:10px;font-weight:500;padding:2px 7px;border-radius:10px;flex-shrink:0}
+.spill.active{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.spill.warning{background:var(--amber-bg);color:var(--amber)}
+.spill.offline{background:var(--red-bg);color:var(--red)}
+.spill.running{background:var(--blue-bg);color:var(--accent)}
+.spill.completed{background:var(--green-bg);color:var(--green)}
+.spill.paused{background:var(--amber-bg);color:var(--amber)}
+.spill.failed{background:var(--red-bg);color:var(--red)}
+.spill.pending{background:var(--bg4);color:var(--text3)}
+/* ── Modal ── */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(4px)}
+.modal-ov.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:24px;width:520px;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:6px}
+.modal-sub{font-size:12px;color:var(--text3);margin-bottom:20px;line-height:1.6}
+.fg{margin-bottom:14px}
+.flbl{font-size:11px;font-weight:500;color:var(--text2);margin-bottom:6px;display:block;letter-spacing:.04em;text-transform:uppercase}
+.finput{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:9px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color .15s}
+.finput:focus{border-color:var(--accent)}
+.finput::placeholder{color:var(--text3)}
+.fselect{appearance:none;cursor:pointer}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-ft{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;border-top:1px solid var(--border);padding-top:16px}
+/* ── Connection test ── */
+.conn-test{background:var(--bg3);border-radius:var(--rs);padding:14px;margin-top:14px}
+.conn-title{font-size:11px;color:var(--text3);margin-bottom:10px;font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+.conn-step{display:flex;align-items:center;gap:9px;padding:6px 0;font-size:12px}
+.csico{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;font-weight:600}
+.csico.p{background:var(--bg4);color:var(--text3)}
+.csico.ok{background:var(--green-bg);color:var(--green)}
+.csico.fail{background:var(--red-bg);color:var(--red)}
+.csico.load{background:var(--blue-bg);color:var(--accent)}
+.cs-lbl{flex:1;color:var(--text2)}
+.cs-msg{font-size:10px;color:var(--text3);max-width:160px;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ── Scenario editor ── */
+.scenario-list{display:flex;flex-direction:column;gap:12px;margin-bottom:20px}
+.sc-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.sc-hd{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;transition:background .15s}
+.sc-hd:hover{background:var(--bg3)}
+.sc-name{font-size:13px;font-weight:500;flex:1}
+.sc-meta{font-size:11px;color:var(--text3)}
+.sc-body{display:none;border-top:1px solid var(--border);padding:16px}
+.sc-body.open{display:block}
+.steps-list{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.step-row{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px;position:relative}
+.step-hd{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.step-num{width:22px;height:22px;border-radius:50%;background:var(--blue-bg);color:var(--accent);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.step-title{font-size:12px;font-weight:500;flex:1}
+.step-del-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:2px 6px;border-radius:4px}
+.step-del-btn:hover{background:var(--red-bg);color:var(--red)}
+.step-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.step-field-full{grid-column:1/-1}
+.step-textarea{width:100%;background:var(--bg4);border:1px solid var(--border);border-radius:var(--rs);padding:8px 10px;color:var(--text);font-size:12px;font-family:inherit;outline:none;resize:vertical;min-height:60px;transition:border-color .15s;line-height:1.5}
+.step-textarea:focus{border-color:var(--accent)}
+.step-textarea::placeholder{color:var(--text3)}
+.delay-row{display:flex;align-items:center;gap:8px}
+.delay-lbl{font-size:11px;color:var(--text3);white-space:nowrap}
+.delay-input{width:70px;background:var(--bg4);border:1px solid var(--border);border-radius:var(--rs);padding:5px 8px;color:var(--text);font-size:12px;font-family:'JetBrains Mono',monospace;outline:none;text-align:center;transition:border-color .15s}
+.delay-input:focus{border-color:var(--accent)}
+.delay-unit{font-size:11px;color:var(--text3)}
+.delay-hint{font-size:10px;color:var(--text3);margin-top:3px}
+.add-step-btn{width:100%;padding:10px;border:1px dashed var(--border2);border-radius:var(--rs);background:none;color:var(--text3);cursor:pointer;font-size:12px;transition:all .15s;margin-top:4px}
+.add-step-btn:hover{background:var(--bg4);color:var(--text);border-color:var(--accent)}
+/* ── Threads table ── */
+.threads-tbl{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.th-row{display:grid;grid-template-columns:1fr 1.5fr 1fr 80px 80px 100px;border-bottom:1px solid var(--border);transition:background .1s}
+.th-row:last-child{border-bottom:none}
+.th-row:hover{background:var(--bg3)}
+/* ── Scheduler bar ── */
+.sched-bar{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px;display:flex;align-items:center;gap:20px;margin-bottom:20px}
+.cyc-prog{flex:1}
+.cyc-lbl{font-size:11px;color:var(--text3);margin-bottom:6px}
+.cyc-bar-wrap{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.cyc-bar{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .5s}
+.cyc-eta{font-size:12px;color:var(--text2);margin-top:4px}
+/* ── Replies ── */
+.reply-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.rep-hd{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.rep-ava{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.rep-from{font-size:12px;font-weight:500}
+.rep-to{font-size:11px;color:var(--text3)}
+.rep-subj{font-size:13px;font-weight:500;margin-bottom:6px}
+.rep-body{font-size:12px;color:var(--text2);line-height:1.6;padding:10px 12px;background:var(--bg3);border-radius:var(--rs)}
+.rep-ft{display:flex;align-items:center;gap:10px;margin-top:10px}
+.rep-tag{font-size:10px;padding:2px 8px;border-radius:10px}
+.rep-tag.step{background:var(--blue-bg);color:var(--accent)}
+.rep-tag.sc{background:var(--purple-bg);color:var(--purple)}
+.rep-tag.ok{color:var(--green)}
+/* ── Logs ── */
+.logs-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.8;padding:14px;height:calc(100vh - 200px);overflow-y:auto}
+.log-line{display:flex;gap:12px;padding:1px 0}
+.log-ts{color:var(--text3);flex-shrink:0}
+.log-lv{flex-shrink:0;font-weight:500;min-width:50px}
+.log-lv.INFO{color:var(--accent)}.log-lv.OK{color:var(--green)}.log-lv.WARN{color:var(--amber)}.log-lv.ERR{color:var(--red)}
+.log-msg{color:var(--text2);flex:1;word-break:break-all}
+.log-filter-btn{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:none;color:var(--text2);transition:all .15s}
+.log-filter-btn.active{background:var(--blue-bg);border-color:var(--blue-border);color:var(--accent)}
+/* ── Settings ── */
+.sets-grid{display:grid;grid-template-columns:190px 1fr;gap:20px}
+.sets-nav{display:flex;flex-direction:column;gap:2px}
+.sets-nav-item{padding:8px 12px;border-radius:var(--rs);cursor:pointer;font-size:13px;color:var(--text2);transition:all .15s}
+.sets-nav-item:hover{background:var(--bg3);color:var(--text)}
+.sets-nav-item.active{background:var(--blue-bg);color:var(--accent)}
+.sets-panel{display:none}
+.sets-panel.active{display:block}
+.sets-sec{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px}
+.sets-ttl{font-size:14px;font-weight:500;margin-bottom:4px}
+.sets-sub{font-size:12px;color:var(--text3);margin-bottom:20px;line-height:1.6}
+.set-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border)}
+.set-row:last-child{border-bottom:none}
+.set-info .set-t{font-size:13px;font-weight:500}
+.set-info .set-d{font-size:11px;color:var(--text3);margin-top:2px}
+.toggle{position:relative;width:38px;height:21px;cursor:pointer}
+.toggle input{opacity:0;width:0;height:0}
+.tog-track{position:absolute;inset:0;background:var(--bg4);border-radius:21px;transition:background .2s;border:1px solid var(--border2)}
+.toggle input:checked~.tog-track{background:var(--accent);border-color:var(--accent)}
+.tog-thumb{position:absolute;top:3px;left:3px;width:15px;height:15px;background:white;border-radius:50%;transition:transform .2s}
+.toggle input:checked~.tog-track .tog-thumb{transform:translateX(17px)}
+.range-input{width:140px;accent-color:var(--accent)}
+.range-val{font-size:12px;font-weight:500;min-width:50px;text-align:right}
+/* ── Misc ── */
+.offline-banner{background:var(--red-bg);border:1px solid rgba(239,68,68,.3);border-radius:var(--rs);padding:10px 16px;font-size:12px;color:var(--red);margin-bottom:16px;display:none;align-items:center;gap:8px}
+.offline-banner.show{display:flex}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:12px 16px;display:flex;align-items:center;gap:10px;font-size:13px;z-index:200;transform:translateY(80px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);pointer-events:none;min-width:280px}
+.toast.show{transform:translateY(0);opacity:1}
+.tdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.tdot.g{background:var(--green)}.tdot.r{background:var(--red)}.tdot.a{background:var(--amber)}.tdot.b{background:var(--accent)}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+.empty{padding:30px;text-align:center;font-size:13px;color:var(--text3)}
+.search-box{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);padding:8px 12px;display:flex;align-items:center;gap:8px}
+.search-box input{background:none;border:none;outline:none;color:var(--text);font-size:12px;flex:1;font-family:inherit}
+.search-box input::placeholder{color:var(--text3)}
+</style>
+</head>
+<body>
+
+<!-- ── Sidebar ── -->
+<nav class="sb">
+  <div class="logo">
+    <div class="logo-wrap">
+      <div class="logo-ico"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg></div>
+      <div><div class="logo-t">MailWarm</div><div class="logo-s">v4 — Rotating Matrix</div></div>
+    </div>
+  </div>
+  <div class="nav-sec">
+    <div class="nav-lbl">Overview</div>
+    <button class="nav-item active" onclick="showPage('dashboard',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Dashboard
+    </button>
+    <button class="nav-item" onclick="showPage('scheduler',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Scheduler
+      <span class="nbadge a" id="b-sched">OFF</span>
+    </button>
+    <button class="nav-item" onclick="showPage('threads',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 2.1l4 4-4 4"/><path d="M3 12.2v-2a4 4 0 0 1 4-4h14"/><path d="m7 21.9-4-4 4-4"/><path d="M21 11.8v2a4 4 0 0 1-4 4H3"/></svg>Threads
+      <span class="nbadge" id="b-threads">0</span>
+    </button>
+  </div>
+  <div class="nav-sec">
+    <div class="nav-lbl">Content</div>
+    <button class="nav-item" onclick="showPage('scenarios',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>Scenarios
+      <span class="nbadge" id="b-scenarios">0</span>
+    </button>
+    <button class="nav-item" onclick="showPage('accounts',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Accounts
+      <span class="nbadge" id="b-accounts">0</span>
+    </button>
+    <button class="nav-item" onclick="showPage('replies',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Sent Replies
+      <span class="nbadge a" id="b-replies">0</span>
+    </button>
+  </div>
+  <div class="nav-sec">
+    <div class="nav-lbl">System</div>
+    <button class="nav-item" onclick="showPage('logs',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>Live Logs
+    </button>
+    <button class="nav-item" onclick="showPage('settings',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 19.07a10 10 0 0 1 0-14.14"/></svg>Settings
+    </button>
+  </div>
+  <div class="sb-foot">
+    <div class="user-pill">
+      <div class="ava">MW</div>
+      <div><div style="font-size:12px;font-weight:500">MailWarm</div><div style="font-size:10px;color:var(--text3)" id="srv-pill">Connecting...</div></div>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Main ── -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div style="font-size:15px;font-weight:500" id="tb-title">Dashboard</div>
+      <div style="font-size:12px;color:var(--text3)" id="tb-sub">Live warmup overview</div>
+    </div>
+    <div class="tb-right">
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2)">
+        <div class="sdot" id="sys-dot"></div><span id="sys-stat">Connecting...</span>
+      </div>
+      <button class="btn" onclick="openModal('addAcc')">+ Add Account</button>
+      <button class="btn" onclick="showPage('scenarios',null);openModal('editScenario',null)">+ New Scenario</button>
+      <button class="btn pri" id="sched-main-btn" onclick="toggleScheduler()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="sched-ico"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <span id="sched-main-txt">Start</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="offline-banner" id="off-banner">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+      Backend offline — make sure <code style="font-family:monospace;background:rgba(239,68,68,.15);padding:1px 5px;border-radius:3px">python server.py</code> is running.
+    </div>
+    <div class="metrics">
+      <div class="met"><div class="met-lbl">Emails Sent</div><div class="met-val" id="m-sent">—</div><div class="met-sub">real SMTP · dedup active</div></div>
+      <div class="met"><div class="met-lbl">Replies Sent</div><div class="met-val" id="m-rep">—</div><div class="met-sub">scenario + AI rewrite</div></div>
+      <div class="met"><div class="met-lbl">Active Threads</div><div class="met-val" id="m-thr">—</div><div class="met-sub" id="m-thr-sub">rotating matrix</div></div>
+      <div class="met"><div class="met-lbl">Spam Rescued</div><div class="met-val" id="m-spam">—</div><div class="met-sub">feedback loop active</div></div>
+    </div>
+    <div class="g3">
+      <div class="card">
+        <div class="card-hd"><div class="card-title">Live Activity</div><div style="font-size:11px;color:var(--accent);cursor:pointer" onclick="showPage('logs',null)">All logs →</div></div>
+        <div id="act-feed"><div class="empty">Waiting for warmup cycles...</div></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div class="card-title">Account Health</div></div>
+        <div id="acc-health"><div class="empty">No accounts yet.</div></div>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-hd"><div class="card-title">Active Threads</div><div style="font-size:11px;color:var(--accent);cursor:pointer" onclick="showPage('threads',null)">All threads →</div></div>
+        <div id="dash-threads"><div class="empty">No active threads.</div></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div class="card-title">Scenarios</div><div style="font-size:11px;color:var(--accent);cursor:pointer" onclick="showPage('scenarios',null)">Manage →</div></div>
+        <div id="dash-scenarios"><div class="empty">No scenarios yet.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENARIOS -->
+  <div class="page" id="page-scenarios">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <div style="font-size:15px;font-weight:500">Scenarios</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px">Define your message/reply scripts. Each step = 1 send + 1 reply with your custom delays.</div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn" onclick="importScenarios()">Import JSON</button>
+        <button class="btn" onclick="exportScenarios()">Export JSON</button>
+        <button class="btn pri" onclick="openModal('editScenario',null)">+ New Scenario</button>
+      </div>
+    </div>
+    <div id="scenario-list"><div class="empty">No scenarios yet. Create one to get started.</div></div>
+  </div>
+
+  <!-- ACCOUNTS -->
+  <div class="page" id="page-accounts">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <div class="search-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input type="text" placeholder="Search..." id="acc-search" oninput="renderAccTable(null,this.value)"></div>
+      <button class="btn pri" onclick="openModal('addAcc')">+ Add Account</button>
+      <button class="btn" onclick="testAllConns()">Test All</button>
+    </div>
+    <div class="tbl">
+      <div class="tbl-hd"><div class="th">Account</div><div class="th">Provider</div><div class="th">Status</div><div class="th">Score</div><div class="th">Sent / Replies</div><div class="th">Actions</div></div>
+      <div id="acc-body"><div class="empty">No accounts added yet.</div></div>
+    </div>
+  </div>
+
+  <!-- THREADS -->
+  <div class="page" id="page-threads">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div><div style="font-size:15px;font-weight:500">Active Threads</div><div style="font-size:12px;color:var(--text3);margin-top:2px">Each thread runs one scenario across a sender + recipients</div></div>
+      <div style="display:flex;gap:8px">
+        <span style="font-size:12px;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);padding:6px 12px">Running: <strong id="thr-running-count">0</strong></span>
+        <span style="font-size:12px;color:var(--green);background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--rs);padding:6px 12px">Completed: <strong id="thr-done-count">0</strong></span>
+      </div>
+    </div>
+    <div class="threads-tbl">
+      <div style="display:grid;grid-template-columns:1fr 1.5fr 1fr 80px 80px 100px;background:var(--bg3);border-bottom:1px solid var(--border)">
+        <div class="th">Sender</div><div class="th">Scenario</div><div class="th">Recipients</div><div class="th">Step</div><div class="th">Status</div><div class="th">Actions</div>
+      </div>
+      <div id="threads-body"><div class="empty">No threads yet. Start the scheduler.</div></div>
+    </div>
+  </div>
+
+  <!-- REPLIES -->
+  <div class="page" id="page-replies">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <div><div style="font-size:15px;font-weight:500">Sent Replies</div><div style="font-size:12px;color:var(--text3);margin-top:2px">Real replies sent via SMTP using your scenario scripts</div></div>
+      <div style="display:flex;gap:8px">
+        <div style="font-size:12px;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);padding:6px 12px">Total: <strong id="rep-total">0</strong></div>
+        <div style="font-size:12px;color:var(--green);background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--rs);padding:6px 12px">✓ All from your scenarios</div>
+      </div>
+    </div>
+    <div id="replies-list"><div class="empty">No replies yet. Start the scheduler.</div></div>
+  </div>
+
+  <!-- SCHEDULER -->
+  <div class="page" id="page-scheduler">
+    <div class="sched-bar">
+      <div><div style="font-size:13px;font-weight:500" id="sched-lbl">Scheduler Stopped</div><div style="font-size:11px;color:var(--text3);margin-top:2px" id="sched-cyc">Cycle #0</div></div>
+      <div class="cyc-prog">
+        <div class="cyc-lbl" id="sched-phase">Idle — add accounts and scenarios, then start</div>
+        <div class="cyc-bar-wrap"><div class="cyc-bar" id="cyc-bar" style="width:0%"></div></div>
+        <div class="cyc-eta" id="cyc-eta">—</div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn" onclick="runNow()">▷ Run Now</button>
+        <button class="btn dan" id="sched-stop-btn" onclick="toggleScheduler()">Start</button>
+      </div>
+    </div>
+    <div id="sched-threads-list"><div class="empty">No cycles yet.</div></div>
+  </div>
+
+  <!-- LOGS -->
+  <div class="page" id="page-logs">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <button class="log-filter-btn active" onclick="setLF('ALL',this)">All</button>
+      <button class="log-filter-btn" onclick="setLF('INFO',this)">Info</button>
+      <button class="log-filter-btn" onclick="setLF('OK',this)">Success</button>
+      <button class="log-filter-btn" onclick="setLF('WARN',this)">Warning</button>
+      <button class="log-filter-btn" onclick="setLF('ERR',this)">Error</button>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn" onclick="clearLogs()">Clear</button>
+        <button class="btn" onclick="exportLogs()">Export</button>
+      </div>
+    </div>
+    <div class="logs-wrap" id="logs-wrap"></div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="page" id="page-settings">
+    <div class="sets-grid">
+      <div class="sets-nav">
+        <div class="sets-nav-item active" onclick="showSP('general',this)">General</div>
+        <div class="sets-nav-item" onclick="showSP('delays',this)">Delays</div>
+        <div class="sets-nav-item" onclick="showSP('warmup',this)">Warmup Rules</div>
+        <div class="sets-nav-item" onclick="showSP('proxies',this)">Proxies</div>
+        <div class="sets-nav-item" onclick="showSP('notif',this)">Notifications</div>
+      </div>
+      <div>
+        <div class="sets-panel active sets-sec" id="sp-general">
+          <div class="sets-ttl">General — v4 Engine</div><div class="sets-sub">Rotating Matrix + AI Adaptation + Feedback Loop configuration.</div>
+          <div class="set-row"><div class="set-info"><div class="set-t">OpenAI API Key</div><div class="set-d">For AI content rewriting (GPT-4o). Leave blank to use scenario text as-is with Spintax.</div></div><div style="display:flex;gap:8px;align-items:center"><input type="password" class="finput" id="s-key" placeholder="sk-..." style="width:210px"><button class="btn suc" onclick="saveSettings()">Save</button></div></div>
+          <div class="set-row"><div class="set-info"><div class="set-t">AI Content Rewriting</div><div class="set-d">GPT-4o rewrites each message based on conversation context. Requires API key.</div></div><label class="toggle"><input type="checkbox" id="s-ai-rewrite" onchange="saveSettings()"><div class="tog-track"><div class="tog-thumb"></div></div></label></div>
+          <div class="set-row"><div class="set-info"><div class="set-t">Deduplication window</div><div class="set-d">Hours before same sender→recipient→scenario combo can repeat</div></div><div style="display:flex;align-items:center;gap:8px"><input type="number" class="finput" id="s-dedup" value="72" min="1" max="720" style="width:80px" onchange="saveSettings()"><span style="font-size:12px;color:var(--text3)">hours</span></div></div>
+          <div class="set-row"><div class="set-info"><div class="set-t">Delay randomization ±</div><div class="set-d">Variance % added to every delay value</div></div><div style="display:flex;align-items:center;gap:10px"><input type="range" class="range-input" min="0" max="40" value="20" id="s-rand" oninput="document.getElementById('s-rand-v').textContent=this.value+'%';saveSettings()"><span class="range-val" id="s-rand-v">20%</span></div></div>
+        </div>
+        <div class="sets-panel sets-sec" id="sp-delays">
+          <div class="sets-ttl">Jitter Engine</div><div class="sets-sub">Random delay enforced between consecutive sends from the same account. Critical for avoiding spam flags.</div>
+          <div class="set-row"><div class="set-info"><div class="set-t">Minimum jitter</div><div class="set-d">Min seconds between sends from same account (recommended: 120)</div></div><div style="display:flex;align-items:center;gap:8px"><input type="number" class="finput" id="s-jmin" value="120" min="10" max="3600" style="width:80px" onchange="saveSettings()"><span style="font-size:12px;color:var(--text3)">seconds</span></div></div>
+          <div class="set-row"><div class="set-info"><div class="set-t">Maximum jitter</div><div class="set-d">Max seconds between sends from same account (recommended: 300)</div></div><div style="display:flex;align-items:center;gap:8px"><input type="number" class="finput" id="s-jmax" value="300" min="10" max="3600" style="width:80px" onchange="saveSettings()"><span style="font-size:12px;color:var(--text3)">seconds</span></div></div>
+          <div class="set-row"><div class="set-info"><div class="set-t">Spam pause threshold</div><div class="set-d">Auto-pause account after N consecutive spam landings</div></div><div style="display:flex;align-items:center;gap:8px"><input type="number" class="finput" id="s-spam-thresh" value="3" min="1" max="20" style="width:80px" onchange="saveSettings()"><span style="font-size:12px;color:var(--text3)">landings</span></div></div>
+        </div>
+        <div class="sets-panel sets-sec" id="sp-warmup">
+          <div class="sets-ttl">Warmup Rules</div><div class="sets-sub">Inbox actions that boost reputation signals.</div>
+          <div class="set-row"><div class="set-info"><div class="set-t">Star percentage</div><div class="set-d">% of inbox messages to star per maintenance run</div></div><div style="display:flex;align-items:center;gap:10px"><input type="range" class="range-input" min="1" max="30" value="10" id="s-star" oninput="document.getElementById('s-star-v').textContent=this.value+'%';saveSettings()"><span class="range-val" id="s-star-v">10%</span></div></div>
+          <div class="set-row"><div class="set-info"><div class="set-t">Auto spam rescue</div><div class="set-d">Move peer emails from spam back to inbox automatically</div></div><label class="toggle" id="tog-unspam"><input type="checkbox" checked onchange="saveSettings()"><div class="tog-track"><div class="tog-thumb"></div></div></label></div>
+        </div>
+        <div class="sets-panel sets-sec" id="sp-proxies">
+          <div class="sets-ttl">Proxy Configuration 🌍</div>
+          <div class="sets-sub">Each account can have its own IP from a different country. This is the most important factor for inbox placement when all accounts are on the same server.</div>
+          <div class="set-row"><div class="set-info"><div class="set-t">How to set proxy per account</div><div class="set-d">Click "+ Add Account" → fill Proxy field → each account gets its own IP</div></div><span class="spill active">Per-account</span></div>
+          <div class="set-row"><div class="set-info"><div class="set-t">Supported proxy types</div><div class="set-d">SOCKS5 (best), SOCKS4, HTTP/HTTPS</div></div><div style="font-family:monospace;font-size:10px;color:var(--text2);text-align:right;line-height:2">socks5://user:pass@host:1080<br>http://user:pass@host:8080</div></div>
+          <div class="set-row"><div class="set-info"><div class="set-t">Recommended providers</div><div class="set-d">Residential proxies — one static IP per account from different cities</div></div><div style="font-size:11px;color:var(--text2);text-align:right;line-height:2">Bright Data<br>Smartproxy<br>Oxylabs</div></div>
+          <div class="set-row"><div class="set-info"><div class="set-t">PySocks library</div><div class="set-d">Required for proxy support — already installed if you used START.bat</div></div><span class="spill active">pip install PySocks</span></div>
+          <div class="set-row"><div class="set-info"><div class="set-t">Without proxy</div><div class="set-d">System works fine — all accounts share your server IP. Proxy is optional but recommended for 10+ accounts.</div></div><span class="spill warning">Optional</span></div>
+        </div>
+        <div class="sets-panel sets-sec" id="sp-notif">
+          <div class="sets-ttl">Notifications</div>
+          <div class="set-row"><div class="set-info"><div class="set-t">Thread complete alerts</div><div class="set-d">Toast when a scenario thread finishes all steps</div></div><label class="toggle"><input type="checkbox" checked id="n-done"><div class="tog-track"><div class="tog-thumb"></div></div></label></div>
+          <div class="set-row"><div class="set-info"><div class="set-t">Error alerts</div><div class="set-d">Toast on SMTP/IMAP errors</div></div><label class="toggle"><input type="checkbox" checked id="n-err"><div class="tog-track"><div class="tog-thumb"></div></div></label></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD ACCOUNT MODAL -->
+<div class="modal-ov" id="modal-addAcc">
+  <div class="modal">
+    <div class="modal-title">Add Email Account</div>
+    <div class="modal-sub">Use an App Password — not your regular password.<br>Gmail: Account → Security → App Passwords → Mail</div>
+    <div class="fg"><label class="flbl">Email Address</label><input type="email" class="finput" placeholder="you@gmail.com" id="n-email"></div>
+    <div class="fg"><label class="flbl">App Password</label><input type="password" class="finput" placeholder="xxxx xxxx xxxx xxxx" id="n-pass" autocomplete="new-password"></div>
+    <div class="frow">
+      <div class="fg"><label class="flbl">Provider</label>
+        <select class="finput fselect" id="n-prov" onchange="autoFill(this.value)">
+          <option value="gmail">Gmail</option><option value="outlook">Outlook</option>
+          <option value="yahoo">Yahoo</option><option value="zoho">Zoho</option><option value="custom">Custom</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="flbl">Proxy — per account IP 🌍</label>
+        <input type="text" class="finput" placeholder="socks5://user:pass@host:port" id="n-proxy" oninput="updateProxyHint(this.value)">
+        <div id="proxy-hint" style="font-size:10px;color:var(--text3);margin-top:4px;line-height:1.6">
+          Formats: <code style="background:var(--bg4);padding:1px 4px;border-radius:3px">socks5://user:pass@host:1080</code> &nbsp;
+          <code style="background:var(--bg4);padding:1px 4px;border-radius:3px">http://user:pass@host:8080</code><br>
+          Each account should have a unique IP from a different city/country for best deliverability.
+        </div>
+      </div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label class="flbl">IMAP Host</label><input type="text" class="finput" id="n-imap" value="imap.gmail.com"></div>
+      <div class="fg"><label class="flbl">SMTP Host</label><input type="text" class="finput" id="n-smtp" value="smtp.gmail.com"></div>
+    </div>
+    <div class="conn-test">
+      <div class="conn-title">Connection Test</div>
+      <div class="conn-step" id="cs-imap"><div class="csico p">○</div><div class="cs-lbl">IMAP SSL (993)</div><div class="cs-msg">—</div></div>
+      <div class="conn-step" id="cs-smtp"><div class="csico p">○</div><div class="cs-lbl">SMTP STARTTLS (587)</div><div class="cs-msg">—</div></div>
+      <div class="conn-step" id="cs-inbox"><div class="csico p">○</div><div class="cs-lbl">INBOX access</div><div class="cs-msg">—</div></div>
+      <div class="conn-step" id="cs-sent"><div class="csico p">○</div><div class="cs-lbl">Sent folder</div><div class="cs-msg">—</div></div>
+      <div class="conn-step" id="cs-spam"><div class="csico p">○</div><div class="cs-lbl">Spam folder</div><div class="cs-msg">—</div></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn" onclick="closeModal('addAcc')">Cancel</button>
+      <button class="btn" id="test-btn" onclick="testConn()">Test Connection</button>
+      <button class="btn pri" id="add-btn" disabled onclick="doAddAcc()">Add Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCENARIO EDITOR MODAL -->
+<div class="modal-ov" id="modal-editScenario">
+  <div class="modal" style="width:680px;max-width:95vw">
+    <div class="modal-title" id="sc-modal-title">New Scenario</div>
+    <div class="modal-sub">Each step = one outgoing message + one reply. Set exact delays per step.</div>
+    <div class="fg">
+      <label class="flbl">Scenario Name</label>
+      <input type="text" class="finput" id="sc-name" placeholder="e.g. Business Introduction Thread">
+    </div>
+    <input type="hidden" id="sc-id">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;margin-top:4px">
+      <div style="font-size:13px;font-weight:500">Steps <span id="sc-step-count" style="font-size:11px;color:var(--text3);font-weight:400;margin-left:6px">0 steps</span></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn amb" onclick="bulkDelay(0.5)">2× Faster</button>
+        <button class="btn amb" onclick="bulkDelay(2)">2× Slower</button>
+      </div>
+    </div>
+
+    <div id="sc-steps-list" style="max-height:420px;overflow-y:auto;padding-right:4px"></div>
+    <button class="add-step-btn" onclick="addStep()">+ Add Step</button>
+
+    <div class="modal-ft">
+      <button class="btn" onclick="closeModal('editScenario')">Cancel</button>
+      <button class="btn pri" onclick="saveScenario()">Save Scenario</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><div class="tdot g" id="tdot"></div><span id="tmsg"></span></div>
+
+<script>
+const API = 'http://localhost:5000/api';
+const COLORS = ['#4f7fff','#7c5cff','#22c55e','#f59e0b','#ef4444','#a855f7','#06b6d4','#f97316','#84cc16','#ec4899'];
+const PROVIDERS = {gmail:{imap:'imap.gmail.com',smtp:'smtp.gmail.com'},outlook:{imap:'outlook.office365.com',smtp:'smtp-mail.outlook.com'},yahoo:{imap:'imap.mail.yahoo.com',smtp:'smtp.mail.yahoo.com'},zoho:{imap:'imap.zoho.com',smtp:'smtp.zoho.com'},custom:{imap:'',smtp:''}};
+
+let lastState = null, schedulerRunning = false, connOK = false;
+let logFilter = 'ALL', countdownTimer = null, cycleStart = null, cycleInterval = 300;
+
+// ── API ────────────────────────────────────────────────────────────────────
+async function api(path, method='GET', body=null) {
+  try {
+    const opts = {method, headers:{'Content-Type':'application/json'}};
+    if (body) opts.body = JSON.stringify(body);
+    const r = await fetch(API+path, opts);
+    return await r.json();
+  } catch(e) { return null; }
+}
+
+// ── Poll ───────────────────────────────────────────────────────────────────
+async function poll() {
+  const d = await api('/state');
+  if (!d) { setOnline(false); setTimeout(poll, 5000); return; }
+  setOnline(true);
+  lastState = d;
+  updateUI(d);
+  setTimeout(poll, 3000);
+}
+
+function setOnline(ok) {
+  document.getElementById('sys-dot').className = ok ? 'sdot' : 'sdot r';
+  document.getElementById('sys-stat').textContent = ok ? 'Backend connected' : 'Backend offline — run server.py';
+  document.getElementById('srv-pill').textContent = ok ? 'Server online' : 'Server offline';
+  document.getElementById('off-banner').className = ok ? 'offline-banner' : 'offline-banner show';
+}
+
+// ── UI update ──────────────────────────────────────────────────────────────
+function updateUI(d) {
+  // Metrics
+  document.getElementById('m-sent').textContent  = d.totalSent;
+  document.getElementById('m-rep').textContent   = d.totalReplies;
+  const active = d.accounts.filter(a=>a.status==='active').length;
+  const running = (d.threads||[]).filter(t=>t.status==='running').length;
+  document.getElementById('m-thr').textContent   = running;
+  document.getElementById('m-thr-sub').textContent = `of ${(d.threads||[]).length} total`;
+  document.getElementById('m-spam').textContent  = d.totalUnspam;
+
+  // Badges
+  document.getElementById('b-accounts').textContent  = d.accounts.length;
+  document.getElementById('b-scenarios').textContent = (d.scenarios||[]).length;
+  document.getElementById('b-threads').textContent   = running;
+  document.getElementById('b-replies').textContent   = (d.replies||[]).length;
+  document.getElementById('rep-total').textContent   = (d.replies||[]).length;
+
+  // Thread counts
+  document.getElementById('thr-running-count').textContent = running;
+  document.getElementById('thr-done-count').textContent = (d.threads||[]).filter(t=>t.status==='completed').length;
+
+  schedulerRunning = d.schedulerRunning;
+  updateSchedUI(d);
+
+  renderActivity(d.activities);
+  renderAccHealth(d.accounts);
+  renderAccTable(d.accounts);
+  renderScenarios(d.scenarios||[]);
+  renderThreads(d.threads||[]);
+  renderReplies(d.replies||[]);
+  renderLogs(d.logs||[]);
+  renderDashScenarios(d.scenarios||[]);
+}
+
+// ── Scheduler UI ───────────────────────────────────────────────────────────
+function updateSchedUI(d) {
+  const on = d.schedulerRunning;
+  document.getElementById('b-sched').textContent   = on ? 'ON'  : 'OFF';
+  document.getElementById('b-sched').className     = on ? 'nbadge g' : 'nbadge a';
+  document.getElementById('sched-lbl').textContent = on ? 'Scheduler Active' : 'Scheduler Stopped';
+  document.getElementById('sched-cyc').textContent = `Cycle #${d.cycleCount}`;
+  document.getElementById('sched-main-txt').textContent = on ? 'Running' : 'Start';
+  document.getElementById('sched-ico').innerHTML   = on
+    ? '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>'
+    : '<polygon points="5 3 19 12 5 21 5 3"/>';
+  document.getElementById('sched-stop-btn').textContent = on ? 'Stop' : 'Start';
+  document.getElementById('sched-stop-btn').className   = on ? 'btn dan' : 'btn suc';
+
+  if (on && !countdownTimer) startCountdown();
+  if (!on) {
+    if (countdownTimer) { clearInterval(countdownTimer); countdownTimer=null; }
+    schedulerRunning = false;
+    resetCycleBar();
+  }
+}
+
+function startCountdown() {
+  if (!cycleStart) cycleStart = Date.now();
+  countdownTimer = setInterval(() => {
+    if (!schedulerRunning && !(lastState?.schedulerRunning)) { clearInterval(countdownTimer); countdownTimer=null; resetCycleBar(); return; }
+    const el = Math.floor((Date.now()-cycleStart)/1000);
+    const rem = Math.max(0, cycleInterval - el);
+    const pct = Math.min(100, Math.round(el/cycleInterval*100));
+    document.getElementById('cyc-bar').style.width = pct+'%';
+    const m = Math.floor(rem/60).toString().padStart(2,'0');
+    const s = (rem%60).toString().padStart(2,'0');
+    document.getElementById('cyc-eta').textContent = `Next scheduler check in: ${m}:${s}`;
+    document.getElementById('sched-phase').textContent = `Active — threads running independently`;
+    if (rem === 0) { cycleStart = Date.now(); }
+  }, 1000);
+}
+
+function resetCycleBar() {
+  document.getElementById('cyc-bar').style.width = '0%';
+  document.getElementById('cyc-eta').textContent = '—';
+  document.getElementById('sched-phase').textContent = 'Stopped — press Start to resume';
+}
+
+async function toggleScheduler() {
+  const isOn = lastState?.schedulerRunning ?? schedulerRunning;
+  const action = isOn ? 'stop' : 'start';
+  const btns = ['sched-main-btn','sched-stop-btn'];
+  btns.forEach(id=>{const b=document.getElementById(id);if(b)b.disabled=true;});
+  const r = await api('/scheduler','POST',{action});
+  btns.forEach(id=>{const b=document.getElementById(id);if(b)b.disabled=false;});
+  if (r?.ok) {
+    schedulerRunning = action==='start';
+    if (action==='stop') {
+      clearInterval(countdownTimer); countdownTimer=null; cycleStart=null;
+      resetCycleBar();
+      document.getElementById('sched-main-txt').textContent='Start';
+      document.getElementById('sched-ico').innerHTML='<polygon points="5 3 19 12 5 21 5 3"/>';
+      document.getElementById('b-sched').textContent='OFF'; document.getElementById('b-sched').className='nbadge a';
+      document.getElementById('sched-stop-btn').textContent='Start'; document.getElementById('sched-stop-btn').className='btn suc';
+      document.getElementById('sched-lbl').textContent='Scheduler Stopped';
+      document.getElementById('sys-dot').className='sdot a';
+      showToast('Scheduler stopped ✓','a');
+    } else {
+      cycleStart = Date.now();
+      showToast('Scheduler started — threads will launch shortly','g');
+    }
+  } else { showToast('Cannot reach backend','r'); }
+}
+
+async function runNow() {
+  if (!lastState?.accounts?.length) { showToast('Add accounts first','a'); return; }
+  if (!lastState?.scenarios?.length) { showToast('Add at least one scenario first','a'); return; }
+  cycleStart = Date.now();
+  const r = await api('/scheduler','POST',{action:'run_now'});
+  if (r?.ok) showToast('Scheduler triggered — check Threads tab','g');
+}
+
+// ── Renders ────────────────────────────────────────────────────────────────
+function renderActivity(acts) {
+  const el=document.getElementById('act-feed');
+  if (!acts||!acts.length) return;
+  const icons={send:'↑',reply:'↩',star:'★',unspam:'✓'};
+  el.innerHTML=acts.slice(0,10).map(a=>`<div class="act-item"><div class="act-ico ${a.type}">${icons[a.type]||'·'}</div><div class="act-body">${a.html}</div><div class="act-time">${a.time}</div></div>`).join('');
+}
+
+function renderAccHealth(accs) {
+  const el=document.getElementById('acc-health');
+  if (!accs||!accs.length){el.innerHTML='<div class="empty">No accounts connected.</div>';return;}
+  el.innerHTML=accs.map((a,i)=>{
+    const c=COLORS[i%COLORS.length];
+    const sc=a.score>=80?'var(--green)':a.score>=60?'var(--amber)':'var(--red)';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:12px">
+      <div style="width:28px;height:28px;border-radius:50%;background:${c}20;color:${c};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0">${a.email.substring(0,2).toUpperCase()}</div>
+      <div style="flex:1;min-width:0"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.email}</div><div style="font-size:10px;color:var(--text3)">${a.provider||''}</div></div>
+      <div class="hbar-wrap"><div class="hbar" style="width:${a.score||60}%;background:${sc}"></div></div>
+      <div style="font-size:11px;font-weight:500;color:${sc};min-width:28px;text-align:right">${a.score||60}%</div>
+      <span class="spill ${a.status||'active'}">${a.status||'active'}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderAccTable(accs, filter='') {
+  const list=(accs||lastState?.accounts||[]).filter(a=>!filter||a.email.includes(filter));
+  const el=document.getElementById('acc-body');
+  if (!list.length){el.innerHTML='<div class="empty">No accounts found.</div>';return;}
+  el.innerHTML=list.map((a,i)=>{
+    const c=COLORS[i%COLORS.length];
+    const sc=(a.score||60)>=80?'var(--green)':(a.score||60)>=60?'var(--amber)':'var(--red)';
+    return `<div class="tbl-row">
+      <div class="td"><div style="width:28px;height:28px;border-radius:50%;background:${c}20;color:${c};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0">${a.email.substring(0,2).toUpperCase()}</div><div><div>${a.email}</div><div style="font-size:10px;color:var(--text3)">IMAP+SMTP ${a.proxy?'· 🌍 proxy':'· direct IP'}</div></div></div>
+      <div class="td">${a.provider||'Gmail'}</div>
+      <div class="td"><span class="spill ${a.status||'active'}">${a.status||'active'}</span></div>
+      <div class="td"><div style="flex:1;height:3px;background:var(--bg4);border-radius:2px;overflow:hidden;min-width:50px"><div style="height:100%;border-radius:2px;background:${sc};width:${a.score||60}%"></div></div><span style="font-size:11px;font-weight:500;color:${sc}">${a.score||60}%</span></div>
+      <div class="td mono">${a.sent||0} / ${a.replies||0}</div>
+      <div class="td" style="gap:4px">
+        ${a.status==='paused'?`<button class="btn suc" style="padding:4px 8px;font-size:10px" onclick="unpauseAcc('${a.email}')">Unpause</button>`:''}
+        <button class="btn dan" style="padding:4px 10px;font-size:11px" onclick="removeAcc('${a.email}')">Remove</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderScenarios(scenarios) {
+  document.getElementById('b-scenarios').textContent = scenarios.length;
+  const el=document.getElementById('scenario-list');
+  if (!scenarios.length){el.innerHTML='<div class="empty">No scenarios yet. Click "+ New Scenario" to start.</div>';return;}
+  el.innerHTML=scenarios.map(s=>`
+    <div class="sc-card">
+      <div class="sc-hd" onclick="toggleSC('sc-body-${s.id}')">
+        <div style="width:8px;height:8px;border-radius:50%;background:${s.active!==false?'var(--green)':'var(--text3)'};flex-shrink:0"></div>
+        <div class="sc-name">${s.name||'Untitled'}</div>
+        <div class="sc-meta">${(s.steps||[]).length} steps</div>
+        <div style="display:flex;gap:8px;margin-left:12px" onclick="event.stopPropagation()">
+          <button class="btn" style="padding:4px 10px;font-size:11px" onclick="editScenario('${s.id}')">Edit</button>
+          <button class="btn dan" style="padding:4px 10px;font-size:11px" onclick="deleteScenario('${s.id}')">Delete</button>
+        </div>
+      </div>
+      <div class="sc-body" id="sc-body-${s.id}">
+        ${!(s.steps||[]).length ? '<div style="font-size:12px;color:var(--text3)">No steps yet.</div>' :
+          s.steps.map((st,i)=>`
+            <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:12px">
+              <div class="step-num">${i+1}</div>
+              <div style="flex:1">
+                <div style="font-weight:500;margin-bottom:4px">${st.subject||'(no subject)'}</div>
+                <div style="color:var(--text2);margin-bottom:6px">${(st.message||'').substring(0,120)}${(st.message||'').length>120?'...':''}</div>
+                ${st.reply?`<div style="background:var(--bg3);border-left:2px solid var(--green);padding:6px 10px;border-radius:0 4px 4px 0;color:var(--text2);margin-bottom:6px">${st.reply.substring(0,100)}${st.reply.length>100?'...':''}</div>`:''}
+                <div style="display:flex;gap:16px;font-size:11px;color:var(--text3)">
+                  <span>⏱ Reply after: <strong style="color:var(--amber)">${st.reply_delay||30} min</strong></span>
+                  <span>⏱ Next send after: <strong style="color:var(--accent)">${st.next_send_delay||60} min</strong></span>
+                </div>
+              </div>
+            </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function renderDashScenarios(scenarios) {
+  const el=document.getElementById('dash-scenarios');
+  if (!scenarios.length){el.innerHTML='<div class="empty">No scenarios yet.</div>';return;}
+  el.innerHTML=scenarios.slice(0,5).map(s=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+      <div style="width:7px;height:7px;border-radius:50%;background:${s.active!==false?'var(--green)':'var(--text3)'};flex-shrink:0"></div>
+      <div style="flex:1;font-weight:500">${s.name}</div>
+      <div style="font-size:11px;color:var(--text3)">${(s.steps||[]).length} steps</div>
+    </div>`).join('');
+}
+
+function renderThreads(threads) {
+  const el1=document.getElementById('threads-body');
+  const el2=document.getElementById('sched-threads-list');
+  const el3=document.getElementById('dash-threads');
+  if (!threads.length){
+    el1.innerHTML='<div class="empty">No threads yet. Start the scheduler.</div>';
+    el2.innerHTML='<div class="empty">No threads yet.</div>';
+    el3.innerHTML='<div class="empty">No active threads.</div>';
+    return;
+  }
+  const rows=threads.slice(0,30).map(t=>`
+    <div class="th-row">
+      <div class="td" style="font-size:11px">${t.sender||'—'}</div>
+      <div class="td" style="font-size:11px">${t.scenario_name||'—'}</div>
+      <div class="td" style="font-size:11px">${(t.recipients||[]).join(', ').substring(0,40)||'—'}</div>
+      <div class="td">${(t.current_step||0)+1}/${(lastState?.scenarios?.find(s=>s.id===t.scenario_id)?.steps||[]).length||'?'}</div>
+      <div class="td"><span class="spill ${t.status||'pending'}">${t.status||'pending'}</span></div>
+      <div class="td" style="gap:6px">
+        <button class="btn" style="padding:3px 8px;font-size:10px" onclick="deleteThread('${t.id}')">✕</button>
+      </div>
+    </div>`).join('');
+  el1.innerHTML = rows;
+  el2.innerHTML = rows;
+  el3.innerHTML = threads.slice(0,5).map(t=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+      <span class="spill ${t.status||'pending'}" style="flex-shrink:0">${t.status}</span>
+      <div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.sender} → ${t.scenario_name}</div>
+      <div style="font-size:11px;color:var(--text3)">step ${(t.current_step||0)+1}</div>
+    </div>`).join('');
+}
+
+function renderReplies(replies) {
+  const el=document.getElementById('replies-list');
+  if (!replies.length) return;
+  el.innerHTML=replies.slice(0,40).map((r,i)=>{
+    const c=COLORS[i%COLORS.length];
+    return `<div class="reply-card">
+      <div class="rep-hd">
+        <div class="rep-ava" style="background:${c}20;color:${c}">${(r.from||'?').substring(0,2).toUpperCase()}</div>
+        <div><div class="rep-from">${r.from}</div><div class="rep-to">→ ${r.to} · ${r.time}</div></div>
+      </div>
+      <div class="rep-subj">${r.subject||''}</div>
+      <div class="rep-body">${r.body||''}</div>
+      <div class="rep-ft">
+        <span class="rep-tag step">Step ${r.step||1}</span>
+        <span class="rep-tag sc">${r.topic||''}</span>
+        <span class="rep-tag ok">✓ sent via SMTP</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderLogs(logs) {
+  const el=document.getElementById('logs-wrap');
+  const f=logFilter==='ALL'?logs:logs.filter(l=>l.level===logFilter);
+  const atBottom=el.scrollHeight-el.scrollTop-el.clientHeight<60;
+  el.innerHTML=f.map(l=>`<div class="log-line"><span class="log-ts">${l.ts}</span><span class="log-lv ${l.level}">${l.level.padEnd(4)}</span><span class="log-msg">${l.msg}</span></div>`).join('');
+  if (atBottom) el.scrollTop=el.scrollHeight;
+}
+
+function toggleSC(id) { const el=document.getElementById(id); if(el) el.classList.toggle('open'); }
+
+// ── Scenario Editor ────────────────────────────────────────────────────────
+let editingSteps = [];
+
+function openModal(name, data) {
+  if (name==='editScenario') {
+    editingSteps = [];
+    document.getElementById('sc-id').value = '';
+    document.getElementById('sc-name').value = '';
+    document.getElementById('sc-modal-title').textContent = 'New Scenario';
+    if (data) {
+      document.getElementById('sc-id').value = data.id||'';
+      document.getElementById('sc-name').value = data.name||'';
+      document.getElementById('sc-modal-title').textContent = 'Edit Scenario';
+      editingSteps = JSON.parse(JSON.stringify(data.steps||[]));
+    }
+    renderStepsList();
+  }
+  document.getElementById('modal-'+name).classList.add('open');
+  if (name==='addAcc') resetTest();
+}
+
+function closeModal(name) { document.getElementById('modal-'+name).classList.remove('open'); }
+document.querySelectorAll('.modal-ov').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
+
+function editScenario(id) {
+  const sc = lastState?.scenarios?.find(s=>s.id===id);
+  if (sc) openModal('editScenario', sc);
+}
+
+async function deleteScenario(id) {
+  await api('/scenarios/'+id,'DELETE');
+  showToast('Scenario deleted','a');
+}
+
+function addStep() {
+  editingSteps.push({
+    subject: '',
+    message: '',
+    reply: '',
+    reply_delay: 30,
+    next_send_delay: 60,
+  });
+  renderStepsList();
+}
+
+function removeStep(i) { editingSteps.splice(i,1); renderStepsList(); }
+
+function renderStepsList() {
+  const el = document.getElementById('sc-steps-list');
+  document.getElementById('sc-step-count').textContent = `${editingSteps.length} step${editingSteps.length!==1?'s':''}`;
+  if (!editingSteps.length) {
+    el.innerHTML='<div style="text-align:center;font-size:12px;color:var(--text3);padding:20px 0">No steps yet. Click "+ Add Step" below.</div>';
+    return;
+  }
+  el.innerHTML = editingSteps.map((st,i)=>`
+    <div class="step-row" id="step-${i}">
+      <div class="step-hd">
+        <div class="step-num">${i+1}</div>
+        <div class="step-title">Step ${i+1}</div>
+        <button class="step-del-btn" onclick="removeStep(${i})">✕</button>
+      </div>
+      <div class="step-fields">
+        <div class="step-field-full">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">Subject Line</div>
+          <input type="text" class="finput" value="${esc(st.subject)}" placeholder="Email subject..." onchange="updateStep(${i},'subject',this.value)" style="font-size:12px">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">📤 Outgoing Message</div>
+          <textarea class="step-textarea" placeholder="Write the message email1 will send..." onchange="updateStep(${i},'message',this.value)">${esc(st.message)}</textarea>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">📥 Reply (from recipient)</div>
+          <textarea class="step-textarea" placeholder="Write the reply email2/3 will send back..." onchange="updateStep(${i},'reply',this.value)">${esc(st.reply)}</textarea>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--amber);margin-bottom:6px;font-weight:500">⏱ Reply Delay</div>
+          <div class="delay-row">
+            <span class="delay-lbl">Recipient replies after</span>
+            <input type="number" class="delay-input" value="${st.reply_delay||30}" min="1" max="10080" onchange="updateStep(${i},'reply_delay',+this.value)">
+            <span class="delay-unit">minutes</span>
+          </div>
+          <div class="delay-hint">How long after receiving the message before the reply is sent</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--accent);margin-bottom:6px;font-weight:500">⏱ Next Send Delay</div>
+          <div class="delay-row">
+            <span class="delay-lbl">Send next step after</span>
+            <input type="number" class="delay-input" value="${st.next_send_delay||60}" min="1" max="10080" onchange="updateStep(${i},'next_send_delay',+this.value)">
+            <span class="delay-unit">minutes</span>
+          </div>
+          <div class="delay-hint">How long after this step completes before email1 sends the next message</div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function updateStep(i, field, val) {
+  editingSteps[i][field] = val;
+}
+
+function bulkDelay(multiplier) {
+  editingSteps = editingSteps.map(s=>({...s,
+    reply_delay: Math.max(1, Math.round((s.reply_delay||30)*multiplier)),
+    next_send_delay: Math.max(1, Math.round((s.next_send_delay||60)*multiplier))
+  }));
+  renderStepsList();
+  showToast(`All delays ${multiplier<1?'halved':'doubled'}`,'b');
+}
+
+async function saveScenario() {
+  // Read latest values from DOM inputs before saving
+  editingSteps.forEach((st,i)=>{
+    const row = document.getElementById('step-'+i);
+    if (!row) return;
+    const inputs = row.querySelectorAll('input[type=text],input[type=number]');
+    const texts  = row.querySelectorAll('textarea');
+    if (inputs[0]) st.subject = inputs[0].value;
+    const delayInputs = row.querySelectorAll('.delay-input');
+    if (delayInputs[0]) st.reply_delay = +delayInputs[0].value;
+    if (delayInputs[1]) st.next_send_delay = +delayInputs[1].value;
+    if (texts[0]) st.message = texts[0].value;
+    if (texts[1]) st.reply   = texts[1].value;
+  });
+
+  const name = document.getElementById('sc-name').value.trim();
+  if (!name) { showToast('Enter a scenario name','a'); return; }
+  if (!editingSteps.length) { showToast('Add at least one step','a'); return; }
+  const invalid = editingSteps.filter(s=>!s.message.trim());
+  if (invalid.length) { showToast('Every step needs a message','a'); return; }
+
+  const id = document.getElementById('sc-id').value || null;
+  const r = await api('/scenarios','POST',{id, name, steps: editingSteps, active: true});
+  if (r?.ok) {
+    closeModal('editScenario');
+    showToast(`Scenario "${name}" saved (${editingSteps.length} steps)`,'g');
+  } else { showToast('Save failed','r'); }
+}
+
+function exportScenarios() {
+  const data = lastState?.scenarios||[];
+  const a=document.createElement('a');
+  a.href='data:application/json,'+encodeURIComponent(JSON.stringify(data,null,2));
+  a.download='mailwarm_scenarios.json'; a.click();
+  showToast('Scenarios exported','g');
+}
+
+function importScenarios() {
+  const input=document.createElement('input');
+  input.type='file'; input.accept='.json';
+  input.onchange=async e=>{
+    try {
+      const text=await e.target.files[0].text();
+      const arr=JSON.parse(text);
+      let count=0;
+      for (const sc of arr) {
+        await api('/scenarios','POST',{...sc, id:null});
+        count++;
+      }
+      showToast(`Imported ${count} scenario(s)`,'g');
+    } catch(err) { showToast('Invalid JSON file','r'); }
+  };
+  input.click();
+}
+
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── Accounts ───────────────────────────────────────────────────────────────
+function autoFill(v){const p=PROVIDERS[v]||PROVIDERS.gmail;document.getElementById('n-imap').value=p.imap;document.getElementById('n-smtp').value=p.smtp;resetTest();}
+
+function resetTest() {
+  connOK=false; document.getElementById('add-btn').disabled=true;
+  ['imap','smtp','inbox','sent','spam'].forEach(k=>{
+    const r=document.getElementById('cs-'+k);
+    r.querySelector('.csico').className='csico p'; r.querySelector('.csico').textContent='○';
+    r.querySelector('.cs-msg').textContent='—';
+  });
+}
+
+function setCS(id,state,msg) {
+  const r=document.getElementById('cs-'+id);
+  if(!r) return;
+  const ic=r.querySelector('.csico');
+  ic.className='csico '+state;
+  ic.textContent=state==='ok'?'✓':state==='fail'?'✕':state==='load'?'↻':'○';
+  r.querySelector('.cs-msg').textContent=msg||'';
+}
+
+async function testConn() {
+  const email=document.getElementById('n-email').value.trim();
+  const pass=document.getElementById('n-pass').value.trim();
+  if(!email||!pass){showToast('Enter email and password first','a');return;}
+  resetTest();
+  const btn=document.getElementById('test-btn');
+  btn.disabled=true; btn.textContent='Testing...';
+  ['imap','smtp','inbox','sent','spam'].forEach(k=>setCS(k,'load','Connecting...'));
+  const r=await api('/test-connection','POST',{email,password:pass,imap_host:document.getElementById('n-imap').value,smtp_host:document.getElementById('n-smtp').value,imap_port:993,smtp_port:587});
+  btn.disabled=false; btn.textContent='Test Connection';
+  if(!r){['imap','smtp','inbox','sent','spam'].forEach(k=>setCS(k,'fail','Backend offline'));showToast('Backend offline','r');return;}
+  const crit={imap:r.imap,smtp:r.smtp,inbox:r.inbox};
+  const nf={sent:r.sent,spam:r.spam};
+  let allOk=true;
+  for(const[k,v]of Object.entries(crit)){setCS(k,v?.ok?'ok':'fail',v?.msg||'No response');if(!v?.ok)allOk=false;}
+  for(const[k,v]of Object.entries(nf)){setCS(k,'ok',v?.msg||'Not required');}
+  connOK=allOk;
+  document.getElementById('add-btn').disabled=!allOk;
+  showToast(allOk?'Connection verified ✓':'Connection failed — check credentials',allOk?'g':'r');
+}
+
+async function doAddAcc() {
+  if(!connOK){showToast('Run connection test first','a');return;}
+  const email=document.getElementById('n-email').value.trim();
+  const pass=document.getElementById('n-pass').value.trim();
+  const provMap={gmail:'Gmail',outlook:'Outlook',yahoo:'Yahoo',zoho:'Zoho',custom:'Custom'};
+  const r=await api('/accounts','POST',{email,password:pass,provider:provMap[document.getElementById('n-prov').value],imap_host:document.getElementById('n-imap').value,smtp_host:document.getElementById('n-smtp').value,proxy:document.getElementById('n-proxy').value||null,imap_port:993,smtp_port:587});
+  if(r?.ok){closeModal('addAcc');document.getElementById('n-email').value='';document.getElementById('n-pass').value='';resetTest();showToast(email+' added ✓','g');}
+  else showToast(r?.error||'Failed','r');
+}
+
+async function removeAcc(email) { const r = await api('/accounts/remove','POST',{email}); if(r?.ok) showToast(email+' removed','a'); else showToast('Remove failed — try again','r'); }
+async function testAllConns() { showToast('Testing connections — check logs','b'); }
+async function deleteThread(id) { await api('/threads/'+id,'DELETE'); }
+
+// ── Logs ───────────────────────────────────────────────────────────────────
+function setLF(f,btn){logFilter=f;document.querySelectorAll('.log-filter-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');if(lastState)renderLogs(lastState.logs||[]);}
+async function clearLogs(){await api('/logs/clear','POST');showToast('Logs cleared','b');}
+function exportLogs(){const logs=lastState?.logs||[];const a=document.createElement('a');a.href='data:text/plain,'+encodeURIComponent(logs.map(l=>`${l.ts}|${l.level.padEnd(4)}|${l.msg}`).join('\n'));a.download='warmup.log';a.click();showToast('Exported','g');}
+
+// ── Settings ───────────────────────────────────────────────────────────────
+async function saveSettings(){
+  const data = {
+    openai_api_key:   document.getElementById('s-key')?.value || '',
+    randomize_pct:    +(document.getElementById('s-rand')?.value||20),
+    star_percentage:  +(document.getElementById('s-star')?.value||10),
+    auto_unspam:      document.querySelector('#tog-unspam input')?.checked ?? true,
+    use_ai_rewrite:   document.getElementById('s-ai-rewrite')?.checked ?? false,
+    dedup_hours:      +(document.getElementById('s-dedup')?.value||72),
+    jitter_min:       +(document.getElementById('s-jmin')?.value||120),
+    jitter_max:       +(document.getElementById('s-jmax')?.value||300),
+    spam_pause_threshold: +(document.getElementById('s-spam-thresh')?.value||3),
+  };
+  await api('/settings','POST',data);
+  showToast('Settings saved','g');
+}
+function showSP(id,el){document.querySelectorAll('.sets-panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.sets-nav-item').forEach(n=>n.classList.remove('active'));document.getElementById('sp-'+id).classList.add('active');el.classList.add('active');}
+
+// ── Nav ────────────────────────────────────────────────────────────────────
+function showPage(page,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  if(btn)btn.classList.add('active');
+  const tt={dashboard:['Dashboard','Live warmup overview'],scenarios:['Scenarios','Message & reply scripts'],accounts:['Accounts','Connected email accounts'],threads:['Threads','Active scenario threads'],replies:['Sent Replies','Replies sent via SMTP'],scheduler:['Scheduler','Cycle control'],logs:['Live Logs','Real-time log stream'],settings:['Settings','Configuration']};
+  const t=tt[page]||['',''];
+  document.getElementById('tb-title').textContent=t[0];
+  document.getElementById('tb-sub').textContent=t[1];
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg,type='g'){document.getElementById('tmsg').textContent=msg;document.getElementById('tdot').className='tdot '+type;document.getElementById('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>document.getElementById('toast').classList.remove('show'),3500);}
+
+// ── Boot ───────────────────────────────────────────────────────────────────
+poll();
+</script>
+</body>
+</html>
