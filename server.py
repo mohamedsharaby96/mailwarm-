@@ -522,19 +522,19 @@ def find_folder(imap_conn, candidates):
         pass
     return None
 
-def send_via_sendgrid(from_email, to_email, subject, body, reply_to_msgid=None):
-    """Send email via SendGrid HTTP API — works on Railway (no port blocks)."""
-    api_key = os.environ.get('SENDGRID_API_KEY', '')
+def send_via_brevo(from_email, to_email, subject, body, reply_to_msgid=None):
+    """Send email via Brevo API — 300 emails/day free, no port restrictions."""
+    api_key = os.environ.get('BREVO_API_KEY', '')
     if not api_key:
-        return False, 'SENDGRID_API_KEY not set in Railway environment variables'
+        return False, 'BREVO_API_KEY not set in Railway environment variables'
 
     msg_id = f"<{uuid.uuid4().hex}.{int(time.time())}@{from_email.split('@')[1]}>"
 
     payload = {
-        "personalizations": [{"to": [{"email": to_email}]}],
-        "from": {"email": from_email},
+        "sender":  {"email": from_email},
+        "to":      [{"email": to_email}],
         "subject": subject,
-        "content": [{"type": "text/plain", "value": body}],
+        "textContent": body,
         "headers": {"Message-ID": msg_id}
     }
     if reply_to_msgid:
@@ -543,22 +543,49 @@ def send_via_sendgrid(from_email, to_email, subject, body, reply_to_msgid=None):
 
     data = json.dumps(payload).encode('utf-8')
     req  = urllib.request.Request(
-        'https://api.sendgrid.com/v3/mail/send',
+        'https://api.brevo.com/v3/smtp/email',
         data=data,
         headers={
-            'Authorization': f'Bearer {api_key}',
-            'Content-Type':  'application/json',
+            'api-key':      api_key,
+            'Content-Type': 'application/json',
+            'Accept':       'application/json',
         },
         method='POST'
     )
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
-            if resp.status in (200, 202):
+            if resp.status in (200, 201):
                 return True, msg_id
-            return False, f'SendGrid returned {resp.status}'
+            return False, f'Brevo returned {resp.status}'
     except urllib.error.HTTPError as e:
         body_err = e.read().decode('utf-8', errors='replace')[:200]
-        return False, f'SendGrid HTTP {e.code}: {body_err}'
+        return False, f'Brevo HTTP {e.code}: {body_err}'
+    except Exception as e:
+        return False, str(e)
+
+def send_via_sendgrid(from_email, to_email, subject, body, reply_to_msgid=None):
+    """Legacy SendGrid — kept as fallback."""
+    api_key = os.environ.get('SENDGRID_API_KEY', '')
+    if not api_key:
+        return False, 'SENDGRID_API_KEY not set'
+    msg_id = f"<{uuid.uuid4().hex}.{int(time.time())}@{from_email.split('@')[1]}>"
+    payload = {
+        "personalizations": [{"to": [{"email": to_email}]}],
+        "from": {"email": from_email},
+        "subject": subject,
+        "content": [{"type": "text/plain", "value": body}],
+    }
+    data = json.dumps(payload).encode('utf-8')
+    req  = urllib.request.Request(
+        'https://api.sendgrid.com/v3/mail/send', data=data,
+        headers={'Authorization': f'Bearer {api_key}', 'Content-Type': 'application/json'},
+        method='POST'
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return (True, msg_id) if resp.status in (200, 202) else (False, f'SG {resp.status}')
+    except urllib.error.HTTPError as e:
+        return False, f'SendGrid HTTP {e.code}: {e.read().decode()[:150]}'
     except Exception as e:
         return False, str(e)
 
@@ -612,16 +639,26 @@ def send_via_smtp(acc, to_email, subject, body, reply_to_msgid=None):
 
 def send_email_real(acc, to_email, subject, body, reply_to_msgid=None):
     """
-    Smart send: tries SendGrid first (Railway-compatible),
-    falls back to direct SMTP (for local use).
+    Smart send priority:
+    1. Brevo API (300/day free, Railway-compatible)
+    2. SendGrid API (100/day free, fallback)
+    3. Direct SMTP (local use)
     """
-    sg_key = os.environ.get('SENDGRID_API_KEY', '')
+    brevo_key = os.environ.get('BREVO_API_KEY', '')
+    sg_key    = os.environ.get('SENDGRID_API_KEY', '')
+
+    if brevo_key:
+        ok, result = send_via_brevo(acc['email'], to_email, subject, body, reply_to_msgid)
+        if ok:
+            return True, result
+        # If Brevo fails, log and try next
+        add_log('WARN', f"Brevo failed: {result} — trying fallback")
+
     if sg_key:
-        # On Railway — use SendGrid API
         return send_via_sendgrid(acc['email'], to_email, subject, body, reply_to_msgid)
-    else:
-        # Local — use direct SMTP
-        return send_via_smtp(acc, to_email, subject, body, reply_to_msgid)
+
+    # Local SMTP fallback
+    return send_via_smtp(acc, to_email, subject, body, reply_to_msgid)
 
 # ── Jitter enforcement ─────────────────────────────────────────────────────
 def wait_for_jitter(email, jitter_min=120, jitter_max=300):
@@ -1363,9 +1400,28 @@ def test_connection():
         except Exception as e:
             results['imap'] = {"ok":False,"msg":str(e)[:80]}
             results['inbox'] = results['sent'] = results['spam'] = {"ok":False,"msg":"Skipped"}
-    sg_key = os.environ.get('SENDGRID_API_KEY', '')
-    if sg_key:
-        # Test SendGrid by checking API key validity
+    brevo_key = os.environ.get('BREVO_API_KEY', '')
+    sg_key    = os.environ.get('SENDGRID_API_KEY', '')
+
+    if brevo_key:
+        try:
+            req = urllib.request.Request(
+                'https://api.brevo.com/v3/account',
+                headers={'api-key': brevo_key, 'Accept': 'application/json'},
+                method='GET'
+            )
+            with urllib.request.urlopen(req, timeout=10) as r:
+                if r.status == 200:
+                    results['smtp'] = {"ok": True, "msg": "Brevo API connected ✓ (300 emails/day)"}
+                    add_log('OK', f"[{email}] Brevo API test passed")
+                else:
+                    results['smtp'] = {"ok": False, "msg": f"Brevo returned {r.status}"}
+        except urllib.error.HTTPError as e:
+            results['smtp'] = {"ok": False, "msg": f"Brevo API key invalid ({e.code})"}
+            add_log('ERR', f"[{email}] Brevo auth failed")
+        except Exception as e:
+            results['smtp'] = {"ok": False, "msg": str(e)[:80]}
+    elif sg_key:
         try:
             req = urllib.request.Request(
                 'https://api.sendgrid.com/v3/scopes',
@@ -1373,14 +1429,7 @@ def test_connection():
                 method='GET'
             )
             with urllib.request.urlopen(req, timeout=10) as r:
-                if r.status == 200:
-                    results['smtp'] = {"ok": True, "msg": "SendGrid API connected ✓"}
-                    add_log('OK', f"[{email}] SendGrid API test passed")
-                else:
-                    results['smtp'] = {"ok": False, "msg": f"SendGrid returned {r.status}"}
-        except urllib.error.HTTPError as e:
-            results['smtp'] = {"ok": False, "msg": f"SendGrid API key invalid ({e.code})"}
-            add_log('ERR', f"[{email}] SendGrid auth failed")
+                results['smtp'] = {"ok": r.status == 200, "msg": "SendGrid API connected ✓" if r.status == 200 else f"SendGrid {r.status}"}
         except Exception as e:
             results['smtp'] = {"ok": False, "msg": str(e)[:80]}
     else:
