@@ -1509,6 +1509,19 @@ def clear_logs():
         state['logs'] = []
     return jsonify({"ok":True})
 
+@app.route('/api/debug-env')
+def debug_env():
+    brevo = os.environ.get('BREVO_API_KEY', 'NOT SET')
+    sg    = os.environ.get('SENDGRID_API_KEY', 'NOT SET')
+    return jsonify({
+        "brevo_key_length": len(brevo),
+        "brevo_key_starts": brevo[:12] if len(brevo) > 12 else brevo,
+        "brevo_key_ends":   brevo[-6:] if len(brevo) > 6 else brevo,
+        "sg_key_set": sg != 'NOT SET',
+        "database_url_set": bool(os.environ.get('DATABASE_URL')),
+        "railway_env": os.environ.get('RAILWAY_ENVIRONMENT', 'not set'),
+    })
+
 @app.route('/api/stats')
 def get_stats():
     try:
